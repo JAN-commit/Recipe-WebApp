@@ -1,21 +1,22 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import RecipeList from '../RecipeDashboard/RecipeList';
 
 const RecipeFavorite = () => {
-  localStorage.setItem('back', '/RecipeFavorite')
+  localStorage.setItem('back', '/favorites');
 
   const [favorites, setFavorites] = useState([]);
   const [recipes, setRecipes] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    let cancelled = false;
+
     const fetchFavorites = async () => {
       try {
-        const dburl = import.meta.env.VITE_FIREBASE_DB_URL;
+        const dburl = (import.meta.env.VITE_FIREBASE_DB_URL ?? '').replace(/\/+$/, '');
         const localid = localStorage.getItem('localId');
-        
         const idToken = localStorage.getItem('idToken');
-
         const favoritesURL = `${dburl}/favorites/${localid}/.json?auth=${idToken}`;
 
         const response = await fetch(favoritesURL);
@@ -24,41 +25,46 @@ const RecipeFavorite = () => {
         }
 
         const data = await response.json();
-        // Map data to array of favorites
-        const favoritesArray = data ? Object.entries(data).map(([key, value]) => ({ key, ...value })) : [];
-        setFavorites(favoritesArray);
-        setLoading(false); 
+        const favoritesArray = data
+          ? Object.entries(data).map(([key, value]) => ({ key, ...value }))
+          : [];
+        if (!cancelled) {
+          setFavorites(favoritesArray);
+          setLoading(false);
+        }
       } catch (error) {
         console.error('Error fetching favorites:', error);
+        if (!cancelled) setLoading(false);
       }
     };
 
     fetchFavorites();
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   useEffect(() => {
-    const fetchRecipeDetails = async () => {
-      setLoading(true); // Set loading to true before fetching details
+    let cancelled = false;
 
+    const fetchRecipeDetails = async () => {
+      setLoading(true);
       const fetchedRecipes = await Promise.all(
         favorites.map(async (favorite) => {
           try {
-            const response = await fetch(`https://www.themealdb.com/api/json/v1/1/lookup.php?i=${favorite.id}`);
-            if (!response.ok) {
-              throw new Error(`Failed to fetch recipe with ID ${favorite.id}`);
-            }
+            const response = await fetch(
+              `https://www.themealdb.com/api/json/v1/1/lookup.php?i=${favorite.id}`
+            );
             const data = await response.json();
             if (data.meals && data.meals.length > 0) {
-              const fetchedRecipe = {
+              return {
                 id: data.meals[0].idMeal,
                 image: data.meals[0].strMealThumb,
                 title: data.meals[0].strMeal,
                 description: data.meals[0].strInstructions,
               };
-              return fetchedRecipe;
-            } else {
-              throw new Error(`Recipe with ID ${favorite.id} not found`);
             }
+            return null;
           } catch (error) {
             console.error('Error fetching recipe:', error);
             return null;
@@ -66,8 +72,10 @@ const RecipeFavorite = () => {
         })
       );
 
-      setRecipes(fetchedRecipes.filter(recipe => recipe !== null));
-      setLoading(false); // Set loading to false once all recipes are fetched
+      if (!cancelled) {
+        setRecipes(fetchedRecipes.filter((recipe) => recipe !== null));
+        setLoading(false);
+      }
     };
 
     if (favorites.length > 0) {
@@ -76,32 +84,36 @@ const RecipeFavorite = () => {
   }, [favorites]);
 
   return (
-    <div id="body">
-      <div id="search" className='flex justify-center w-full'>
-        <label className="form-control w-full max-w-xs">
-          <div className="label">
-            <h1 className="text-5xl font-semibold">My Favorites</h1>
+    <div className="mx-auto w-full max-w-7xl px-4 pt-10 pb-4 sm:px-6">
+      <h1 className="font-display text-3xl font-semibold sm:text-4xl">My favorites</h1>
+      <p className="mt-2 text-base-content/60">
+        The dishes you saved for later, all in one place.
+      </p>
+
+      <div className="mt-8">
+        {loading ? (
+          <div className="flex w-full justify-center py-16">
+            <span className="loading loading-spinner loading-lg text-primary"></span>
           </div>
-        </label>
+        ) : recipes.length > 0 ? (
+          <RecipeList recipes={recipes} loading={false} />
+        ) : (
+          <div className="py-20 text-center">
+            <span className="material-symbols-outlined text-6xl text-base-content/25">
+              favorite
+            </span>
+            <p className="mt-4 font-display text-xl font-semibold text-base-content/80">
+              No favorites yet
+            </p>
+            <p className="mx-auto mt-1 max-w-sm text-base-content/60">
+              Tap the heart on any recipe and it will show up right here.
+            </p>
+            <Link to="/dashboard" className="btn btn-primary mt-6">
+              Find something to cook
+            </Link>
+          </div>
+        )}
       </div>
-
-      {loading ? (
-        <div className="flex justify-center w-full mt-8">
-          <span className="loading loading-spinner loading-lg"></span>
-        </div>
-      ) : (
-
-        <div className='flex flex-col items-center px-5 min-h-screen pt-'>
-          <div className='w-full max-w-7xl'>
-            <div className="flex flex-wrap justify-center gap-4 py-5">
-
-              <RecipeList recipes={recipes} loading={loading} />
-
-            </div>
-
-          </div>
-        </div>
-      )}
     </div>
   );
 };

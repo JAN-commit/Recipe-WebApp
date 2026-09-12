@@ -1,82 +1,124 @@
-import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useState } from 'react';
+import { Link, NavLink, useNavigate } from 'react-router-dom';
 import SideBar from './SideBar';
+import { useAuth, clearSession, notifyAuthChange } from './useAuth';
+
+const LOGGED_IN_LINKS = [
+  { to: '/dashboard', label: 'Dashboard' },
+  { to: '/search', label: 'Search' },
+  { to: '/a-z', label: 'A to Z' },
+  { to: '/categories', label: 'Categories' },
+];
+
+const PUBLIC_LINKS = [
+  { to: '/search', label: 'Search' },
+  { to: '/a-z', label: 'A to Z' },
+  { to: '/categories', label: 'Categories' },
+];
 
 export default function TitleNav() {
-    const navigate = useNavigate();
-    const [isUserLoggedIn, setIsUserLoggedIn] = useState(!!localStorage.getItem('idToken'));
-    const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const navigate = useNavigate();
+  const loggedIn = useAuth();
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
 
-    const handleLogout = () => {
-        localStorage.removeItem('expiresIn');
-        localStorage.removeItem('idToken');
-        localStorage.removeItem('localId');
-        localStorage.removeItem('expiryTime');
-        localStorage.removeItem('back')
-        setIsUserLoggedIn(false);
-        setIsDropdownOpen(false);
-        navigate('/');
-    };
+  const handleLogout = () => {
+    clearSession();
+    notifyAuthChange();
+    setIsDropdownOpen(false);
+    setIsMenuOpen(false);
+    navigate('/');
+  };
 
-    const myfavorite = () => {
-        setIsDropdownOpen(false);
-        navigate('/RecipeFavorite');
-    };
+  const links = loggedIn ? LOGGED_IN_LINKS : PUBLIC_LINKS;
 
-
-    useEffect(() => {
-        const token = localStorage.getItem('idToken');
-        setIsUserLoggedIn(!!token);
-    }, [localStorage.getItem('idToken')]);
-
-
-    useEffect(() => {
-        const handleOutsideClick = (e) => {
-            if (isDropdownOpen && !e.target.closest('.dropdown-content') && !e.target.closest('.avatar')) {
-                setIsDropdownOpen(false);
-            }
-        };
-        
-        document.addEventListener('mousedown', handleOutsideClick);
-        return () => document.removeEventListener('mousedown', handleOutsideClick);
-    }, [isDropdownOpen]);
-
-    const toggleDropdown = () => setIsDropdownOpen(!isDropdownOpen);
-
-    return (
-        <div className='sticky top-0 z-20'>
-            <div className="navbar bg-base-100">
-    <SideBar />
-                <div className="flex-1">
-                    {/* <h1 className="text-xl font-bold">Recipe Web App</h1> */}
-                </div>
-                <div className="flex-none">
-                    {isUserLoggedIn && (
-                        <div className="dropdown dropdown-end ">
-                            <div
-                                tabIndex="0"
-                                role="button"
-                                className="btn btn-ghost btn-circle avatar"
-                                onClick={toggleDropdown}
-                            >
-                                <div className="w-10 rounded-full">
-                                    <img alt="Avatar" src="https://img.daisyui.com/images/stock/photo-1534528741775-53994a69daeb.jpg" />
-                                </div>
-                            </div>
-                            {isDropdownOpen && (
-                                <ul tabIndex="0" className="menu menu-sm dropdown-content p-2 shadow-sm bg-base-200 rounded-box w-52 ">
-                                    <li>
-                                        <a className="justify-between" onClick={myfavorite}>
-                                            Favorites
-                                        </a>
-                                    </li>
-                                    <li onClick={handleLogout} className='text-red-500  rounded-lg'><a>Logout</a></li>
-                                </ul>
-                            )}
-                        </div>
-                    )}
-                </div>
-            </div>
+  return (
+    <nav className="sticky top-0 z-40 border-b border-base-300 bg-base-100">
+      <div className="mx-auto flex h-16 w-full max-w-7xl items-center justify-between px-4 sm:px-6">
+        <div className="flex items-center gap-3">
+          <button
+            type="button"
+            onClick={() => navigate('/')}
+            className="flex cursor-pointer items-center gap-2 rounded-lg"
+            aria-label="Kusina home"
+          >
+            <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary text-primary-content">
+              <span className="material-symbols-outlined text-xl">restaurant</span>
+            </span>
+            <span className="font-display text-xl font-semibold tracking-tight">Kusina</span>
+          </button>
         </div>
-    );
+
+        <div className="hidden items-center gap-1 md:flex">
+          {links.map((link) => (
+            <NavLink
+              key={link.to}
+              to={link.to}
+              className={({ isActive }) =>
+                'rounded-lg px-3 py-2 text-sm font-medium transition-colors ' +
+                (isActive ? 'text-primary' : 'text-base-content/70 hover:text-primary hover:bg-base-200')
+              }
+            >
+              {link.label}
+            </NavLink>
+          ))}
+        </div>
+
+        <div className="flex items-center gap-2">
+          {loggedIn ? (
+            <div className="relative">
+              <button
+                type="button"
+                onClick={() => setIsDropdownOpen((v) => !v)}
+                className="flex h-9 w-9 cursor-pointer items-center justify-center rounded-full border border-base-300 bg-base-200 text-base-content transition-colors hover:border-primary/50"
+                aria-label="Account menu"
+              >
+                <span className="material-symbols-outlined">person</span>
+              </button>
+              {isDropdownOpen && (
+                <div className="absolute right-0 mt-2 w-48 overflow-hidden rounded-xl border border-base-300 bg-base-100 shadow-card">
+                  <Link
+                    to="/favorites"
+                    onClick={() => setIsDropdownOpen(false)}
+                    className="flex items-center gap-2 px-4 py-3 text-sm font-medium text-base-content/80 hover:bg-base-200"
+                  >
+                    <span className="material-symbols-outlined text-lg">favorite</span>
+                    Favorites
+                  </Link>
+                  <button
+                    type="button"
+                    onClick={handleLogout}
+                    className="flex w-full cursor-pointer items-center gap-2 border-t border-base-300 px-4 py-3 text-left text-sm font-medium text-error hover:bg-error/5"
+                  >
+                    <span className="material-symbols-outlined text-lg">logout</span>
+                    Sign out
+                  </button>
+                </div>
+              )}
+            </div>
+          ) : (
+            <div className="hidden items-center gap-2 md:flex">
+              <Link to="/login" className="btn btn-ghost btn-sm">
+                Sign in
+              </Link>
+              <Link to="/signup" className="btn btn-primary btn-sm">
+                Get started
+              </Link>
+            </div>
+          )}
+
+          <button
+            type="button"
+            onClick={() => setIsMenuOpen(true)}
+            className="flex h-9 w-9 cursor-pointer items-center justify-center rounded-lg text-base-content md:hidden"
+            aria-label="Open menu"
+          >
+            <span className="material-symbols-outlined text-2xl">menu</span>
+          </button>
+        </div>
+      </div>
+
+      <SideBar open={isMenuOpen} onClose={() => setIsMenuOpen(false)} loggedIn={loggedIn} />
+    </nav>
+  );
 }

@@ -1,30 +1,26 @@
-import React, { useState, useEffect } from 'react';
+import { useState } from 'react';
 import RecipeList from '../RecipeDashboard/RecipeList';
 
 export default function SearchLetter() {
-  localStorage.setItem('back', '/SearchLetter')
+  localStorage.setItem('back', '/a-z');
 
-  const [search, setSearch] = useState('');
+  const [selected, setSelected] = useState('');
   const [loading, setLoading] = useState(false);
   const [recipes, setRecipes] = useState([]);
 
-  const handleLetterClick = async (letter) => {
-    setSearch(letter);
-    await handleSearch(letter);
-  };
-
   const handleSearch = async (letter) => {
+    setSelected(letter);
+    setLoading(true);
     try {
-      setLoading(true);
-      const response = await fetch(`https://www.themealdb.com/api/json/v1/1/search.php?f=${letter}`);
-
+      const response = await fetch(
+        `https://www.themealdb.com/api/json/v1/1/search.php?f=${letter}`
+      );
       if (!response.ok) {
         throw new Error('Failed to fetch recipes');
       }
-
       const data = await response.json();
       if (data.meals) {
-        const newRecipes = data.meals.map(meal => ({
+        const newRecipes = data.meals.map((meal) => ({
           id: meal.idMeal,
           image: meal.strMealThumb,
           title: meal.strMeal,
@@ -41,40 +37,56 @@ export default function SearchLetter() {
     }
   };
 
-  const handleChange = (event) => {
-    setSearch(event.target.value);
-  };
-
   return (
-    <div className=''>
-        <div className="label mb-3 p-5">
-          <h1 className="text-4xl font-semibold text-center">Select letter</h1>
-        </div>
-    <div id="body" className="flex flex-col items-center min-h-screen px-5 pt-">
-      <div id="letters" className="w-full max-w-3xl mt-10">
-        <div className="flex flex-wrap justify-center gap-4">
-          {Array.from({ length: 26 }, (_, index) => (
+    <div className="mx-auto w-full max-w-7xl px-4 pt-10 pb-4 sm:px-6">
+      <h1 className="font-display text-3xl font-semibold sm:text-4xl">Browse by letter</h1>
+      <p className="mt-2 text-base-content/60">
+        Choose a letter and see every recipe that starts with it.
+      </p>
+
+      <div className="mt-8 flex w-full max-w-3xl flex-wrap gap-2">
+        {Array.from({ length: 26 }, (_, index) => {
+          const letter = String.fromCharCode(65 + index);
+          const isActive = selected === letter;
+          return (
             <button
-              key={index}
-              onClick={() => handleLetterClick(String.fromCharCode(65 + index))}
-              className="btn btn-secondary flex items-center w-10 h-10 sm:w-12 sm:h-14 md:w-15 md:h-15"
-            >{String.fromCharCode(65 + index)}
+              key={letter}
+              onClick={() => handleSearch(letter)}
+              disabled={loading}
+              className={`flex h-11 w-11 cursor-pointer items-center justify-center rounded-lg border text-sm font-semibold transition-colors ${
+                isActive
+                  ? 'border-primary bg-primary text-primary-content'
+                  : 'border-base-300 bg-base-100 text-base-content/80 hover:border-primary/50 hover:text-primary'
+              }`}
+            >
+              {letter}
             </button>
-          ))}
-        </div>
+          );
+        })}
       </div>
 
-      <div className="flex flex-wrap justify-center gap-4 py-5">
-        {loading ? (
-          <span className="loading loading-spinner loading-lg"></span>
-        ) : (
-          <div className="flex flex-wrap justify-center gap-4 py-5">
-            <RecipeList recipes={recipes} loading={loading} />
+      {selected && !loading && (
+        <p className="mt-6 text-sm text-base-content/60">
+          {recipes.length > 0 ? (
+            <>
+              <span className="font-semibold text-primary">{recipes.length}</span> recipe
+              {recipes.length > 1 ? 's' : ''} starting with “{selected}”
+            </>
+          ) : (
+            <>No recipes start with “{selected}” yet.</>
+          )}
+        </p>
+      )}
+
+      <div className="mt-6">
+        <RecipeList recipes={recipes} loading={loading} />
+        {selected && !loading && recipes.length === 0 && (
+          <div className="py-16 text-center">
+            <span className="material-symbols-outlined text-5xl text-base-content/30">abc</span>
+            <p className="mt-3 text-base-content/60">Nothing here yet. Try a different letter.</p>
           </div>
         )}
       </div>
-
     </div>
-          </div>
   );
 }

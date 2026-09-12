@@ -1,5 +1,7 @@
 import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
 import TitleNav from './Components/TitleNav';
+import Footer from './Components/Footer';
+import ScrollToTop from './Components/ScrollToTop';
 import LandingPage from './Components/Pages/LandingPage';
 import DashBoard from './Components/Pages/DashBoard';
 import RecipeSingleView from './Components/Pages/RecipeSingleView';
@@ -10,30 +12,30 @@ import SearchLetter from './Components/Pages/SearchLetter';
 import SearchIngredient from './Components/Pages/SearchIngredient';
 import ViewCategory from './Components/Pages/ViewCategory';
 import RecipeFavorite from './Components/Pages/RecipeFavorite';
-import SideBar from './Components/SideBar';
 
 function App() {
   return (
-    <div className="flex">
-      <Router>
-        {/* <SideBar /> */}
-        <div className="flex-1 md:ml-60">
-          <TitleNav />
+    <Router>
+      <div className="flex min-h-screen flex-col bg-base-100 text-base-content">
+        <ScrollToTop />
+        <TitleNav />
+        <main className="flex-1">
           <Routes>
             <Route path="/" element={<LandingPage />} />
-            <Route path="/Dashboard" element={<DashBoard />} />
-            <Route path="/RecipeSingleView/:id" element={<RecipeSingleView />} />
-            <Route path="/SearchRecipe" element={<SearchRecipe />} />
             <Route path="/login" element={<Login />} />
-            <Route path="/Signup" element={<Signup />} />
-            <Route path="/SearchLetter" element={<SearchLetter />} />
-            <Route path="/SearchIngredient" element={<SearchIngredient />} />
-            <Route path="/ViewCategory" element={<ViewCategory />} />
-            <Route path="/RecipeFavorite" element={<RecipeFavorite />} />
+            <Route path="/signup" element={<Signup />} />
+            <Route path="/dashboard" element={<DashBoard />} />
+            <Route path="/recipe/:id" element={<RecipeSingleView />} />
+            <Route path="/search" element={<SearchRecipe />} />
+            <Route path="/a-z" element={<SearchLetter />} />
+            <Route path="/categories" element={<SearchIngredient />} />
+            <Route path="/category" element={<ViewCategory />} />
+            <Route path="/favorites" element={<RecipeFavorite />} />
           </Routes>
-        </div>
-      </Router>
-    </div>
+        </main>
+        <Footer />
+      </div>
+    </Router>
   );
 }
 
